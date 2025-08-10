@@ -5,12 +5,11 @@ namespace InventoryHub.Web.Controllers
     public class SearchController : Controller
     {
 
-
         [HttpGet]
-        public IActionResult Index(string q)
+        public IActionResult Index([FromQuery(Name = "q")] string? q)
         {
             ViewData["SearchQuery"] = q;
-            return View();
+            return View(model: q ?? string.Empty);
         }
     }
 }

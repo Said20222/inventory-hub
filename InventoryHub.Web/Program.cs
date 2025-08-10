@@ -5,8 +5,6 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-app.Logger.LogInformation("Environment: {env}", app.Environment.EnvironmentName);
-
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
