@@ -23,25 +23,11 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Cache NuGet
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
-      - name: Restore
-        run: dotnet restore InventoryHub.Web/InventoryHub.Web.csproj
-
-
-
-      - name: Build
-        run: dotnet build InventoryHub.Web/InventoryHub.Web.csproj -c Release --no-restore
-
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish InventoryHub.Web/InventoryHub.Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/publish --no-build
+        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
