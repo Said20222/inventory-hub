@@ -5,6 +5,14 @@
 
 # dotenv files
 .env
+appsettings.Development.json
+appsettings.Local.json
+*.PublishSettings
+*.pubxml
+*.pfx
+*.pem
+secrets.json
+
 
 # User-specific files
 *.rsuser
