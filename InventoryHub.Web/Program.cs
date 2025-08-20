@@ -5,7 +5,11 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)
+        ).EnableDetailedErrors()
+        .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     { options.SignIn.RequireConfirmedAccount = false; })      // TODO: Set to true in production
@@ -20,28 +24,25 @@ builder.Services.AddRazorPages();
 var app = builder.Build();
 
 // TODO: Remove this in production
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
-    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-    const string adminRole = "Admin";
-    if (!await roleMgr.RoleExistsAsync(adminRole))
-        await roleMgr.CreateAsync(new IdentityRole(adminRole));
-
-    var adminEmail = "admin@mail.com";
-    var adminPwd = "Admin!12345";
-
-    var admin = await userMgr.FindByEmailAsync(adminEmail);
-    if (admin == null)
+    using var scope = app.Services.CreateScope();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
     {
-        admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-        await userMgr.CreateAsync(admin, adminPwd);
+        var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+        const string adminRole = "Admin";
+        if (!await roleMgr.RoleExistsAsync(adminRole))
+            await roleMgr.CreateAsync(new IdentityRole(adminRole));
+
+        // (Optional) Seed admin user
     }
-
-    if (!await userMgr.IsInRoleAsync(admin, adminRole))
-        await userMgr.AddToRoleAsync(admin, adminRole);
-
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Admin/role seeding failed; continuing without seeding");
+    }
 }
 
 

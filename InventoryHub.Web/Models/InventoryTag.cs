@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace InventoryHub.Web.Models
 {
     public class InventoryTag
