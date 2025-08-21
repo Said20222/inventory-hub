@@ -9,17 +9,12 @@ using InventoryHub.Web.Data;
 using InventoryHub.Web.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using InventoryHub.Web.Models.ViewModels;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace InventoryHub.Web.Controllers
 {
-    public sealed class InventoryCreateVm
-{
-    public string Title { get; set; } = "";
-    public string? Description { get; set; }
-    public InventoryCategory Category { get; set; }
-    public string? ImageUrl { get; set; }
-    public bool IsPublic { get; set; }
-}
+
 
     [Authorize]
     public class InventoriesController : Controller
@@ -73,66 +68,78 @@ namespace InventoryHub.Web.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost, ValidateAntiForgeryToken]
-public async Task<IActionResult> Create(InventoryCreateVm vm)
-    {
-        if (!ModelState.IsValid) return View(vm);
-
-        var entity = new Inventory
+        public async Task<IActionResult> Create(InventoryCreateVm vm)
         {
-            Id = Guid.NewGuid(),
-            Title = vm.Title,
-            Description = vm.Description,
-            Category = vm.Category,
-            ImageUrl = vm.ImageUrl,
-            IsPublic = vm.IsPublic,
-            CreatedAtUTC = DateTime.UtcNow,
-            CreatorId = _userManager.GetUserId(User)! 
-        };
+            if (!ModelState.IsValid) return View(vm);
 
-        _context.Inventories.Add(entity);
-        await _context.SaveChangesAsync();
-        return RedirectToAction(nameof(Edit), new { id = entity.Id });
-    }
+            var entity = new Inventory
+            {
+                Id = Guid.NewGuid(),
+                Title = vm.Title,
+                Description = vm.Description,
+                Category = vm.Category,
+                ImageUrl = vm.ImageUrl,
+                IsPublic = vm.IsPublic,
+                CreatedAtUTC = DateTime.UtcNow,
+                CreatorId = _userManager.GetUserId(User)! 
+            };
+
+            _context.Inventories.Add(entity);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Edit), new { id = entity.Id });
+        }
 
 
         // GET: Inventories/Edit/5
-        public async Task<IActionResult> Edit(Guid? id)
+        public async Task<IActionResult> Edit(Guid id)
         {
-            if (id == null)
-                return NotFound();
-            
-
             var inv = await _context.Inventories.FindAsync(id);
-            if (inv == null)
-                return NotFound();
-            
+            if (inv == null) return NotFound();
 
-            // TODO: Enforce admin or owner access
-            return View(inv);
+            var vm = new InventoryEditVm {
+                Id = inv.Id,
+                Title = inv.Title,
+                Description = inv.Description,
+                Category = inv.Category,
+                ImageUrl = inv.ImageUrl,
+                IsPublic = inv.IsPublic,
+                Version = inv.Version
+            };
+            return View(vm);
         }
 
         // POST: Inventories/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Title,Description,Category,ImageUrl,IsPublic,UpdatedAtUTC")] Inventory invForm)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Guid id, InventoryEditVm vm)
         {
-            if (id != invForm.Id) return NotFound();
-            if (!ModelState.IsValid) return View(invForm);
+            // TODO: Polish the logic to use vm 
+            if (id != vm.Id) return NotFound();
+            if (!ModelState.IsValid) return View(vm);
 
             var inv = await _context.Inventories.FindAsync(id);
             if (inv == null) return NotFound();
 
-            inv.Title = invForm.Title;
-            inv.Description = invForm.Description;
-            inv.Category = invForm.Category;
-            inv.ImageUrl = invForm.ImageUrl;
-            inv.IsPublic = invForm.IsPublic;
+            _context.Entry(inv).Property(i => i.Version).OriginalValue = vm.Version;
+
+            inv.Title = vm.Title;
+            inv.Description = vm.Description;
+            inv.Category = vm.Category;
+            inv.ImageUrl = vm.ImageUrl;
+            inv.IsPublic = vm.IsPublic;
             inv.UpdatedAtUTC = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Edit), new { id });
+            try
+            {
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Edit), new { id });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                ModelState.AddModelError(string.Empty, "The inventory was updated by another user. Please reload the page and try again.");
+                return View(vm);
+            }
         }
 
         // GET: Inventories/Delete/5
