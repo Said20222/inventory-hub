@@ -1,4 +1,4 @@
-@model IEnumerable<InventoryHub.Web.Models.Inventory>
+@model IEnumerable<InventoryHub.Web.Models.ViewModels.InventoryRowVm>
 
 @{
     ViewData["Title"] = "Index";
@@ -17,25 +17,25 @@
     <a asp-action="Create">Create New</a>
 </p>
 <table class="table table-hover align-middle">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Category</th>
-            <th>Public</th>
-            <th>Owner</th>
-            <th>Created</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var inv in Model)
-    {
-        <tr>
-            <td><a asp-action="Edit" asp-route-id="@inv.Id">@inv.Title</a></td>
-            <td>@inv.Category</td>
-            <td>@(inv.IsPublic ? "Yes" : "No")</td>
-            <td>@inv.CreatorId</td>
-            <td>@inv.CreatedAtUTC.ToLocalTime().ToString("g")</td>
-        </tr>
-    }
-    </tbody>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Created by</th>
+      <th>Category</th>
+      <th>Public</th>
+      <th>Created at</th>
+    </tr>
+  </thead>
+  <tbody>
+  @foreach (var r in Model)
+  {
+      <tr>
+        <td><a asp-action="Edit" asp-route-id="@r.Id">@r.Title</a></td>
+        <td>@r.OwnerUserName</td>
+        <td>@r.Category</td>
+        <td>@(r.IsPublic ? "Yes" : "No")</td>
+        <td>@r.CreatedAtUTC.ToLocalTime().ToString("g")</td>
+      </tr>
+  }
+  </tbody>
 </table>

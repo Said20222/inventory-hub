@@ -34,10 +34,21 @@ namespace InventoryHub.Web.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var list = await _context.Inventories
-                .OrderByDescending(i => i.CreatedAtUTC)
-                .ToListAsync();
-            return View(list);
+            var rows = await
+                (from i in _context.Inventories
+                 join u in _context.Users on i.CreatorId equals u.Id
+                 orderby i.CreatedAtUTC descending
+                 select new InventoryRowVm
+                 {
+                     Id = i.Id,
+                     Title = i.Title,
+                     OwnerUserName = u.UserName!,
+                     Category = i.Category,
+                     IsPublic = i.IsPublic,
+                     CreatedAtUTC = i.CreatedAtUTC
+                 }).ToListAsync();
+                
+            return View(rows);
         }
 
         // GET: Inventories/Details/5

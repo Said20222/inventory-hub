@@ -11,11 +11,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ).EnableDetailedErrors()
         .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
-    { options.SignIn.RequireConfirmedAccount = false; })      // TODO: Set to true in production
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders()
-    .AddDefaultUI();
+// Identity (single registration, with Roles + Default UI)
+builder.Services
+    .AddDefaultIdentity<IdentityUser>(options =>
+    {
+        options.SignIn.RequireConfirmedAccount = builder.Environment.IsProduction();
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddRoles<IdentityRole>()                 
+    .AddEntityFrameworkStores<AppDbContext>() 
+    .AddDefaultTokenProviders()              
+    .AddDefaultUI();                   
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
