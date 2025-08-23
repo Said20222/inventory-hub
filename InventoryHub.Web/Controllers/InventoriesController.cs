@@ -125,7 +125,6 @@ namespace InventoryHub.Web.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Guid id, InventoryEditVm vm)
         {
-            // TODO: Polish the logic to use vm 
             if (id != vm.Id) return NotFound();
             if (!ModelState.IsValid) return View(vm);
 
