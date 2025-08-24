@@ -1,0 +1,18 @@
+@model InventoryHub.Web.Models.ViewModels.ItemCreateVm
+@{
+    ViewData["Title"] = "New Item";
+}
+<h2>New Item</h2>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" asp-for="InventoryId" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="CustomId" class="form-label"></label>
+        <input asp-for="CustomId" class="form-control" placeholder="Leave blank to auto-generate" />
+        <span asp-validation-for="CustomId" class="text-danger"></span>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Create</button>
+</form>

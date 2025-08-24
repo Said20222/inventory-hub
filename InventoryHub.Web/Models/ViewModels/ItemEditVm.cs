@@ -1,0 +1,12 @@
+namespace InventoryHub.Web.Models.ViewModels
+{
+    public sealed class ItemEditVm
+    {
+        public Guid Id { get; set; }
+        public Guid InventoryId { get; set; }
+        public string CustomId { get; set; } = "";
+        public uint Version { get; set; }
+
+        // TODO: Add remaining dynamic field values
+    }
+}
