@@ -4,7 +4,7 @@
 }
 <h2>New Item</h2>
 
-<form asp-action="Create" method="post">
+<form asp-action="Create" asp-route-inventoryId="@Model.InventoryId" method="post">
     <input type="hidden" asp-for="InventoryId" />
     <div asp-validation-summary="All" class="text-danger"></div>
 

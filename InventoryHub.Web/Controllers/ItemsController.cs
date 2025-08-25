@@ -10,20 +10,19 @@ namespace InventoryHub.Web.Controllers
 {
     [Authorize]
     [Route("Inventories/{inventoryId:guid}/Items")]
-    public class ItemController : Controller
+    public class ItemsController : Controller
     {
         private readonly AppDbContext _dbContext;
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly ILogger<ItemController> _logger;
+        private readonly ILogger<ItemsController> _logger;
 
-        public ItemController(AppDbContext dbContext, UserManager<IdentityUser> userManager, ILogger<ItemController> logger)
+        public ItemsController(AppDbContext dbContext, UserManager<IdentityUser> userManager, ILogger<ItemsController> logger)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _logger = logger;
         }
 
-        // TODO: Implement CRUD actions for items
         [HttpGet("")]
         [AllowAnonymous]
         public async Task<IActionResult> Index(Guid inventoryId)
@@ -67,7 +66,9 @@ namespace InventoryHub.Web.Controllers
             {
                 Id = Guid.NewGuid(),
                 InventoryId = vm.InventoryId,
-                CustomId = vm.CustomId,
+                CustomId = string.IsNullOrWhiteSpace(vm.CustomId)
+                    ? Guid.NewGuid().ToString("N")[..9] 
+                    : vm.CustomId.Trim(),
                 CreatorId = _userManager.GetUserId(User)!,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
