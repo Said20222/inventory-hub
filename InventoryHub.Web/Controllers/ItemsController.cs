@@ -25,7 +25,7 @@ namespace InventoryHub.Web.Controllers
 
         [HttpGet("")]
         [AllowAnonymous]
-        public async Task<IActionResult> Index(Guid inventoryId)
+        public async Task<IActionResult> Index([FromRoute]Guid inventoryId)
         {
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
@@ -35,7 +35,10 @@ namespace InventoryHub.Web.Controllers
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 
+            var canWrite = CanWrite(inventory);
+
             ViewBag.inventory = inventory;
+            ViewBag.canWrite = canWrite;
             return View(items);
         }
 

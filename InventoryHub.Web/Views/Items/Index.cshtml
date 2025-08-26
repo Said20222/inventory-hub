@@ -1,35 +1,49 @@
 @model IEnumerable<InventoryHub.Web.Models.Item>
 @{
     var inv = (InventoryHub.Web.Models.Inventory)ViewBag.Inventory;
+    bool canWrite = (bool)(ViewBag.canWrite ?? false);
     ViewData["Title"] = "Items";
 }
 <h2>Items — @inv.Title</h2>
 
-<div class="d-flex gap-2 mb-2">
-    @if (User.Identity?.IsAuthenticated ?? false)
-    {
-        <a class="btn btn-primary" asp-action="Create" asp-route-inventoryId="@inv.Id">New item</a>
-    }
-</div>
+@if (canWrite)
+{
+    <div class="mb-2">
+        <a class="btn btn-primary"
+           asp-action="Create"
+           asp-route-inventoryId="@inv.Id">
+           New item
+        </a>
+    </div>
+}
 
 <table class="table table-hover align-middle">
-    <thead>
-        <tr>
-            <th>Custom ID</th>
-            <th>Created</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var it in Model)
-    {
-        <tr>
-            <td>
-                <a asp-action="Edit" asp-route-inventoryId="@it.InventoryId" asp-route-id="@it.Id">
-                    @it.CustomId
-                </a>
-            </td>
-            <td>@it.CreatedAt.ToLocalTime().ToString("g")</td>
-        </tr>
-    }
-    </tbody>
+  <thead>
+    <tr>
+      <th>Custom ID</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+  <tbody>
+  @foreach (var it in Model)
+  {
+      <tr>
+        <td>
+          @if (canWrite)
+          {
+              <a asp-action="Edit"
+                 asp-route-inventoryId="@it.InventoryId"
+                 asp-route-id="@it.Id">
+                 @it.CustomId
+              </a>
+          }
+          else
+          {
+              @it.CustomId 
+          }
+        </td>
+        <td>@it.CreatedAt.ToLocalTime().ToString("g")</td>
+      </tr>
+  }
+  </tbody>
 </table>
