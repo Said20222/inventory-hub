@@ -72,9 +72,16 @@ namespace InventoryHub.Web.Data
             {
                 e.ToTable("InventoryAccess");
                 e.HasKey(ia => new { ia.InventoryId, ia.UserId });
+                e.HasIndex(ia => new { ia.UserId, ia.InventoryId }).IsUnique();
+
                 e.HasOne(ia => ia.Inventory)
                     .WithMany(i => i.Accesses)
                     .HasForeignKey(ia => ia.InventoryId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                e.HasOne(ia => ia.User)
+                    .WithMany()
+                    .HasForeignKey(ia => ia.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
