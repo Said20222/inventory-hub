@@ -1,4 +1,5 @@
 using InventoryHub.Web.Data;
+using InventoryHub.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ).EnableDetailedErrors()
         .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 
-// Identity (single registration, with Roles + Default UI)
 builder.Services
     .AddDefaultIdentity<IdentityUser>(options =>
     {
@@ -21,9 +21,9 @@ builder.Services
     .AddRoles<IdentityRole>()                 
     .AddEntityFrameworkStores<AppDbContext>() 
     .AddDefaultTokenProviders()              
-    .AddDefaultUI();                   
+    .AddDefaultUI();  
 
-// Add services to the container.
+builder.Services.AddScoped<IAccessService, AccessService>();                 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
