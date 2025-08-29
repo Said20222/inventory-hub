@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using InventoryHub.Web.Data;
 using InventoryHub.Web.Models;
+using InventoryHub.Web.Services;
 using InventoryHub.Web.Models.ViewModels;
 
 namespace InventoryHub.Web.Controllers
@@ -14,12 +15,14 @@ namespace InventoryHub.Web.Controllers
     {
         private readonly AppDbContext _dbContext;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly IAccessService _access;
         private readonly ILogger<ItemsController> _logger;
 
-        public ItemsController(AppDbContext dbContext, UserManager<IdentityUser> userManager, ILogger<ItemsController> logger)
+        public ItemsController(AppDbContext dbContext, UserManager<IdentityUser> userManager, IAccessService access, ILogger<ItemsController> logger)
         {
             _dbContext = dbContext;
             _userManager = userManager;
+            _access = access;
             _logger = logger;
         }
 
@@ -35,7 +38,7 @@ namespace InventoryHub.Web.Controllers
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 
-            var canWrite = CanWrite(inventory);
+            var canWrite = await _access.HasWriteAccess(User, inventory);
 
             ViewBag.inventory = inventory;
             ViewBag.canWrite = canWrite;
@@ -48,7 +51,7 @@ namespace InventoryHub.Web.Controllers
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
 
-            if (!CanWrite(inventory)) return Forbid();
+            if (!await _access.HasWriteAccess(User, inventory)) return Forbid();
 
             var vm = new ItemCreateVm { InventoryId = inventoryId };
             return View(vm);
@@ -61,7 +64,7 @@ namespace InventoryHub.Web.Controllers
 
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
-            if (!CanWrite(inventory)) return Forbid();
+            if (!await _access.HasWriteAccess(User, inventory)) return Forbid();
 
             if (!ModelState.IsValid) return View(vm);
 
@@ -99,7 +102,7 @@ namespace InventoryHub.Web.Controllers
 
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
-            if (!CanWrite(inventory)) return Forbid();
+            if (!await _access.HasWriteAccess(User, inventory)) return Forbid();
 
             var vm = new ItemEditVm
             {
@@ -124,7 +127,7 @@ namespace InventoryHub.Web.Controllers
 
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
-            if (!CanWrite(item.Inventory)) return Forbid();
+            if (!await _access.HasWriteAccess(User, inventory)) return Forbid();
 
             if (!ModelState.IsValid) return View(vm);
 
@@ -148,15 +151,6 @@ namespace InventoryHub.Web.Controllers
                 ModelState.AddModelError(nameof(vm.CustomId), "Custom ID must be unique within this inventory.");
                 return View(vm);
             }
-        }
-
-        // For testing only - remove later to use inventoryAccess
-        private bool CanWrite(Inventory inv)
-        {
-            if (!User.Identity?.IsAuthenticated ?? true) return false;
-            var userId = _userManager.GetUserId(User);
-            if (userId == inv.CreatorId) return true;
-            return User.IsInRole("Admin");
         }
     }
 }

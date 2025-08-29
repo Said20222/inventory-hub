@@ -1,16 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using InventoryHub.Web.Data;
 using InventoryHub.Web.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using InventoryHub.Web.Models.ViewModels;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using InventoryHub.Web.Services;
 
 namespace InventoryHub.Web.Controllers
 {
@@ -21,13 +16,13 @@ namespace InventoryHub.Web.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly ILogger<InventoriesController> _logger;
+        private readonly IAccessService _access;
 
-        public InventoriesController(AppDbContext context, UserManager<IdentityUser> userManager, ILogger<InventoriesController> logger)
+        public InventoriesController(AppDbContext context, UserManager<IdentityUser> userManager, IAccessService access)
         {
             _context = context;
             _userManager = userManager;
-            _logger = logger;
+            _access = access;
         }
 
         // GET: Inventories
@@ -106,6 +101,8 @@ namespace InventoryHub.Web.Controllers
         {
             var inv = await _context.Inventories.FindAsync(id);
             if (inv == null) return NotFound();
+            if (!await _access.HasWriteAccess(User, inv)) return Forbid();
+
 
             var vm = new InventoryEditVm {
                 Id = inv.Id,
@@ -130,6 +127,7 @@ namespace InventoryHub.Web.Controllers
 
             var inv = await _context.Inventories.FindAsync(id);
             if (inv == null) return NotFound();
+            if (!await _access.HasWriteAccess(User, inv)) return Forbid();
 
             _context.Entry(inv).Property(i => i.Version).OriginalValue = vm.Version;
 
@@ -160,14 +158,13 @@ namespace InventoryHub.Web.Controllers
                 return NotFound();
             }
 
-            var inventory = await _context.Inventories
+            var inv = await _context.Inventories
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (inventory == null)
-            {
-                return NotFound();
-            }
 
-            return View(inventory);
+            if (inv == null) return NotFound();
+            if (!await _access.HasWriteAccess(User, inv)) return Forbid();
+            
+            return View(inv);
         }
 
         // POST: Inventories/Delete/5
@@ -176,7 +173,7 @@ namespace InventoryHub.Web.Controllers
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
             var inventory = await _context.Inventories.FindAsync(id);
-            if (inventory != null)
+            if (inventory != null && await _access.HasWriteAccess(User, inventory))
             {
                 _context.Inventories.Remove(inventory);
             }
