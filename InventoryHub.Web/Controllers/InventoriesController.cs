@@ -42,7 +42,7 @@ namespace InventoryHub.Web.Controllers
                      IsPublic = i.IsPublic,
                      CreatedAtUTC = i.CreatedAtUTC
                  }).ToListAsync();
-                
+
             return View(rows);
         }
 
@@ -87,7 +87,7 @@ namespace InventoryHub.Web.Controllers
                 ImageUrl = vm.ImageUrl,
                 IsPublic = vm.IsPublic,
                 CreatedAtUTC = DateTime.UtcNow,
-                CreatorId = _userManager.GetUserId(User)! 
+                CreatorId = _userManager.GetUserId(User)!
             };
 
             _context.Inventories.Add(entity);
@@ -104,7 +104,8 @@ namespace InventoryHub.Web.Controllers
             if (!await _access.HasWriteAccess(User, inv)) return Forbid();
 
 
-            var vm = new InventoryEditVm {
+            var vm = new InventoryEditVm
+            {
                 Id = inv.Id,
                 Title = inv.Title,
                 Description = inv.Description,
@@ -163,7 +164,7 @@ namespace InventoryHub.Web.Controllers
 
             if (inv == null) return NotFound();
             if (!await _access.HasWriteAccess(User, inv)) return Forbid();
-            
+
             return View(inv);
         }
 
@@ -181,5 +182,93 @@ namespace InventoryHub.Web.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+        
+        [HttpGet("Inventories/{id:guid}/Access")]
+        public async Task<IActionResult> Access(Guid id, [FromServices] IAccessService access, [FromServices] UserManager<IdentityUser> um)
+        {
+            var inv = await _context.Inventories.FindAsync(id);
+            if (inv == null) return NotFound();
+            if (!await access.HasWriteAccess(User, inv)) return Forbid();
+
+            var writers = await _context.Accesses
+                .Where(a => a.InventoryId == id)
+                .Join(_context.Users, a => a.UserId, u => u.Id, (a,u) => new InventoryAccessVm.UserRow {
+                    UserId = u.Id, UserName = u.UserName!, Email = u.Email
+                })
+                .OrderBy(x => x.UserName)
+                .ToListAsync();
+
+            var vm = new InventoryAccessVm {
+                InventoryId = id,
+                InventoryTitle = inv.Title,
+                IsPublic = inv.IsPublic,
+                Writers = writers
+            };
+            return View(vm);
+        }
+
+        [HttpPost("Inventories/{id:guid}/Access/Add"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddWriter(Guid id, InventoryAccessVm vm, [FromServices] IAccessService access, [FromServices] UserManager<IdentityUser> um)
+        {
+            var inv = await _context.Inventories.FindAsync(id);
+            if (inv == null) return NotFound();
+            if (!await access.HasWriteAccess(User, inv)) return Forbid();
+
+            if (string.IsNullOrWhiteSpace(vm.Query))
+                return RedirectToAction(nameof(Access), new { id });
+
+            // Find by email first, then by username
+            var user = await um.FindByEmailAsync(vm.Query) ?? await um.FindByNameAsync(vm.Query);
+            if (user == null) {
+                TempData["AccessError"] = "User not found.";
+                return RedirectToAction(nameof(Access), new { id });
+            }
+
+            if (user.Id == inv.CreatorId) {
+                TempData["AccessError"] = "Owner already has full access.";
+                return RedirectToAction(nameof(Access), new { id });
+            }
+
+            var exists = await _context.Accesses.AnyAsync(a => a.InventoryId == id && a.UserId == user.Id);
+            if (!exists)
+            {
+                _context.Accesses.Add(new InventoryAccess { InventoryId = id, UserId = user.Id });
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Access), new { id });
+        }
+
+        [HttpPost("Inventories/{id:guid}/Access/Remove"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveWriter(Guid id, string userId, [FromServices] IAccessService access)
+        {
+            var inv = await _context.Inventories.FindAsync(id);
+            if (inv == null) return NotFound();
+            if (!await access.HasWriteAccess(User, inv)) return Forbid();
+
+            var row = await _context.Accesses.FindAsync(id, userId);
+            if (row != null)
+            {
+                _context.Accesses.Remove(row);
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Access), new { id });
+        }
+
+        [HttpPost("Inventories/{id:guid}/Access/Public"), ValidateAntiForgeryToken]
+        public async Task<IActionResult> TogglePublic(Guid id, bool isPublic, [FromServices] IAccessService access)
+        {
+            var inv = await _context.Inventories.FindAsync(id);
+            if (inv == null) return NotFound();
+            if (!await access.HasWriteAccess(User, inv)) return Forbid();
+
+            inv.IsPublic = isPublic;
+            inv.UpdatedAtUTC = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Access), new { id });
+        }
+
     }
 }

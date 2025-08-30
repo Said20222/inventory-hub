@@ -1,0 +1,49 @@
+@model InventoryHub.Web.Models.ViewModels.InventoryAccessVm
+@{
+    ViewData["Title"] = "Access";
+}
+<h2>Access — @Model.InventoryTitle</h2>
+
+@if (TempData["AccessError"] is string err) {
+  <div class="alert alert-warning">@err</div>
+}
+
+<form asp-action="TogglePublic" asp-route-id="@Model.InventoryId" method="post" class="mb-3">
+  <input type="hidden" name="isPublic" value="@(!Model.IsPublic)" />
+  <button class="btn btn-outline-secondary" type="submit">
+    @(Model.IsPublic ? "Disable public write" : "Enable public write")
+  </button>
+</form>
+
+<div class="card mb-3">
+  <div class="card-header">Writers</div>
+  <div class="card-body">
+    <form asp-action="AddWriter" asp-route-id="@Model.InventoryId" method="post" class="row g-2">
+      <div class="col-auto">
+        <input asp-for="Query" class="form-control" placeholder="username or email" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary" type="submit">Add</button>
+      </div>
+    </form>
+    <hr />
+    <table class="table table-sm">
+      <thead><tr><th>User</th><th>Email</th><th></th></tr></thead>
+      <tbody>
+        @foreach (var u in Model.Writers)
+        {
+          <tr>
+            <td>@u.UserName</td>
+            <td>@u.Email</td>
+            <td class="text-end">
+              <form asp-action="RemoveWriter" asp-route-id="@Model.InventoryId" method="post" class="d-inline">
+                <input type="hidden" name="userId" value="@u.UserId" />
+                <button class="btn btn-outline-danger btn-sm" type="submit">Remove</button>
+              </form>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
