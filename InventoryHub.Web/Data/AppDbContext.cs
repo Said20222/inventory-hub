@@ -20,6 +20,7 @@ namespace InventoryHub.Web.Data
         public DbSet<InventoryAccess> Accesses => Set<InventoryAccess>();
         public DbSet<Field> Fields => Set<Field>();
         public DbSet<ItemFieldValue> Values => Set<ItemFieldValue>();
+        public DbSet<ItemLike> ItemLikes => Set<ItemLike>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -78,7 +79,7 @@ namespace InventoryHub.Web.Data
                     .WithMany(i => i.Accesses)
                     .HasForeignKey(ia => ia.InventoryId)
                     .OnDelete(DeleteBehavior.Cascade);
-                
+
                 e.HasOne(ia => ia.User)
                     .WithMany()
                     .HasForeignKey(ia => ia.UserId)
@@ -96,7 +97,7 @@ namespace InventoryHub.Web.Data
                     .OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(f => new { f.InventoryId, f.Order });
             });
-            
+
             modelBuilder.Entity<ItemFieldValue>(e =>
             {
                 e.ToTable("ItemFieldValues");
@@ -109,8 +110,23 @@ namespace InventoryHub.Web.Data
                     .WithMany()
                     .HasForeignKey(v => v.FieldId)
                     .OnDelete(DeleteBehavior.Cascade);
-                
+
                 e.HasIndex(x => new { x.ItemId, x.FieldId }).IsUnique();
+            });
+
+            modelBuilder.Entity<ItemLike>(e =>
+            {
+                e.HasKey(x => new { x.ItemId, x.UserId });
+
+                e.HasOne(x => x.Item)
+                .WithMany()
+                .HasForeignKey(x => x.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

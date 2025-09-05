@@ -28,7 +28,7 @@ namespace InventoryHub.Web.Controllers
 
         [HttpGet("")]
         [AllowAnonymous]
-        public async Task<IActionResult> Index([FromRoute]Guid inventoryId)
+        public async Task<IActionResult> Index([FromRoute] Guid inventoryId)
         {
             var inventory = await _dbContext.Inventories.FindAsync(inventoryId);
             if (inventory == null) return NotFound();
@@ -40,8 +40,8 @@ namespace InventoryHub.Web.Controllers
 
             var canWrite = await _access.HasWriteAccess(User, inventory);
 
-            ViewBag.inventory = inventory;
-            ViewBag.canWrite = canWrite;
+            ViewBag.Inventory = inventory;
+            ViewBag.CanWrite = canWrite;
             return View(items);
         }
 
@@ -73,7 +73,7 @@ namespace InventoryHub.Web.Controllers
                 Id = Guid.NewGuid(),
                 InventoryId = vm.InventoryId,
                 CustomId = string.IsNullOrWhiteSpace(vm.CustomId)
-                    ? Guid.NewGuid().ToString("N")[..9] 
+                    ? Guid.NewGuid().ToString("N")[..9]
                     : vm.CustomId.Trim(),
                 CreatorId = _userManager.GetUserId(User)!,
                 CreatedAt = DateTime.UtcNow,
@@ -94,7 +94,8 @@ namespace InventoryHub.Web.Controllers
         }
 
         [HttpGet("{id:guid}/Edit")]
-        public async Task<IActionResult> Edit(Guid inventoryId, Guid id) {
+        public async Task<IActionResult> Edit(Guid inventoryId, Guid id)
+        {
             var item = await _dbContext.Items
                 .Include(i => i.Inventory)
                 .FirstOrDefaultAsync(i => i.Id == id && i.InventoryId == inventoryId);
@@ -151,6 +152,63 @@ namespace InventoryHub.Web.Controllers
                 ModelState.AddModelError(nameof(vm.CustomId), "Custom ID must be unique within this inventory.");
                 return View(vm);
             }
+        }
+
+        [HttpGet("{id:guid}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Details(Guid inventoryId, Guid id)
+        {
+            var item = await _dbContext.Items
+                .Include(i => i.Inventory)
+                .FirstOrDefaultAsync(i => i.Id == id && i.InventoryId == inventoryId);
+            if (item == null) return NotFound();
+
+            var likeCount = await _dbContext.ItemLikes.CountAsync(l => l.ItemId == id);
+
+            var likedByMe = false;
+            if (User.Identity?.IsAuthenticated ?? false)
+            {
+                var myId = _userManager.GetUserId(User);
+                if (myId != null)
+                    likedByMe = await _dbContext.ItemLikes.AnyAsync(l => l.ItemId == id && l.UserId == myId);
+            }
+
+            var vm = new ItemDetailsVm
+            {
+                InventoryId = inventoryId,
+                ItemId = id,
+                CustomId = item.CustomId,
+                Title = item.Title,
+                Description = item.Description,
+                LikeCount = likeCount,
+                LikedByMe = likedByMe
+            };
+            return View(vm);
+        }
+        
+        [HttpPost("{id:guid}/Like")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleLike(Guid inventoryId, Guid id, string? returnUrl = null)
+        {
+            if (!(User.Identity?.IsAuthenticated ?? false)) return Challenge();
+
+            var myId = _userManager.GetUserId(User)!;
+
+            var existing = await _dbContext.ItemLikes.FindAsync(new object[] { id, myId });
+            if (existing is null)
+            {
+                _dbContext.ItemLikes.Add(new ItemLike { ItemId = id, UserId = myId });
+            }
+            else
+            {
+                _dbContext.ItemLikes.Remove(existing);
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return !string.IsNullOrWhiteSpace(returnUrl)
+                ? LocalRedirect(returnUrl)
+                : RedirectToAction(nameof(Details), new { inventoryId, id });
         }
     }
 }

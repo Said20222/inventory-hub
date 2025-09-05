@@ -1,0 +1,33 @@
+@model InventoryHub.Web.Models.ViewModels.ItemDetailsVm
+@{
+    ViewData["Title"] = "Item";
+    var back = Url.Action("Index", "Items", new { inventoryId = Model.InventoryId });
+    var here = Context.Request.Path + Context.Request.QueryString;
+}
+
+<h2 class="mb-3">Item @Model.CustomId</h2>
+
+<div class="mb-3">
+    <a class="btn btn-sm btn-outline-secondary" href="@back">← Back to items</a>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">@Model.Title</h5>
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+      <p class="card-text">@Model.Description</p>
+    }
+
+    <form asp-action="ToggleLike"
+          asp-route-inventoryId="@Model.InventoryId"
+          asp-route-id="@Model.ItemId"
+          method="post" class="d-inline">
+      <input type="hidden" name="returnUrl" value="@here" />
+      <button type="submit" class="btn btn-outline-primary">
+        @(Model.LikedByMe ? "Unlike ♥" : "Like ♡")
+        <span class="badge text-bg-light">@Model.LikeCount</span>
+      </button>
+    </form>
+  </div>
+</div>

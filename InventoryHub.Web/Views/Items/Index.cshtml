@@ -1,49 +1,57 @@
 @model IEnumerable<InventoryHub.Web.Models.Item>
+@using InventoryHub.Web.Models
 @{
-    var inv = (InventoryHub.Web.Models.Inventory)ViewBag.Inventory;
-    bool canWrite = (bool)(ViewBag.canWrite ?? false);
+    var inv = ViewBag.Inventory as Inventory;
+    var counts = ViewBag.LikeCounts as IDictionary<Guid,int> ?? new Dictionary<Guid,int>();
+    var liked  = ViewBag.LikedByMe as HashSet<Guid> ?? new HashSet<Guid>();
+    bool canWrite = (bool)(ViewBag.CanWrite ?? false);
     ViewData["Title"] = "Items";
 }
-<h2>Items — @inv.Title</h2>
 
-@if (canWrite)
+@if (inv is null)
 {
-    <div class="mb-2">
-        <a class="btn btn-primary"
-           asp-action="Create"
-           asp-route-inventoryId="@inv.Id">
-           New item
-        </a>
-    </div>
+    <div class="alert alert-warning">Inventory not supplied to view.</div>
 }
+else
+{
+    <h2>Items — @inv.Title</h2>
 
-<table class="table table-hover align-middle">
-  <thead>
-    <tr>
-      <th>Custom ID</th>
-      <th>Created</th>
-    </tr>
-  </thead>
-  <tbody>
-  @foreach (var it in Model)
-  {
-      <tr>
-        <td>
-          @if (canWrite)
-          {
-              <a asp-action="Edit"
-                 asp-route-inventoryId="@it.InventoryId"
-                 asp-route-id="@it.Id">
-                 @it.CustomId
-              </a>
-          }
-          else
-          {
-              @it.CustomId 
-          }
-        </td>
-        <td>@it.CreatedAt.ToLocalTime().ToString("g")</td>
-      </tr>
-  }
-  </tbody>
-</table>
+    @if (canWrite)
+    {
+        <div class="mb-2">
+            <a class="btn btn-primary"
+               href="@Url.Action("Create", "Items", new { inventoryId = inv.Id })">
+               New item
+            </a>
+        </div>
+    }
+
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Custom ID</th>
+          <th>Created</th>
+          @* TODO: Add a Likes column *@
+        </tr>
+      </thead>
+      <tbody>
+      @foreach (var it in Model)
+      {
+          var href = Url.Action("Details", "Items", new { inventoryId = inv.Id, id = it.Id });
+          <tr>
+            <td>
+              <a href="@href">@it.CustomId</a>
+              @* TODO: show Edit link separately *@
+              @if (canWrite)
+              {
+                  <small class="ms-2">
+                      <a href="@Url.Action("Edit", "Items", new { inventoryId = it.InventoryId, id = it.Id })">Edit</a>
+                  </small>
+              }
+            </td>
+            <td>@it.CreatedAt.ToLocalTime().ToString("g")</td>
+          </tr>
+      }
+      </tbody>
+    </table>
+}
